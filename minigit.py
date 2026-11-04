@@ -64,3 +64,49 @@ class MiniGit:
 
         self.__passos = 1
         return tuple(self.__pais[commit])
+
+    def criar_branch(self, nome):
+        """Cria um ponteiro para o commit atual, gastando um passo."""
+        self.__passos = 0
+        if nome in self.__branches:
+            raise ValueError("A branch ja existe")
+        if self.__branches[self.__branch_atual] is None:
+            raise ValueError("Nao ha commits para criar a branch")
+
+        self.__branches[nome] = self.__branches[self.__branch_atual]
+        self.__passos = 1
+
+    def trocar_branch(self, nome):
+        """Move a referencia da branch atual para outra, gastando um passo."""
+        self.__passos = 0
+        if nome not in self.__branches:
+            raise ValueError("Branch inexistente")
+
+        self.__branch_atual = nome
+        self.__passos = 1
+
+    @property
+    def branch_atual(self):
+        """Informa o nome da branch selecionada sem permitir alteracao."""
+        return self.__branch_atual
+
+    def mesclar(self, nome):
+        """Cria um commit com dois pais e move a branch, gastando dois passos."""
+        self.__passos = 0
+        if nome not in self.__branches:
+            raise ValueError("Branch inexistente")
+        if nome == self.__branch_atual:
+            raise ValueError("Nao e possivel mesclar a branch atual")
+
+        identificador = f"c{self.__proximo_commit}"
+        pais_do_commit = [
+            self.__branches[self.__branch_atual],
+            self.__branches[nome],
+        ]
+        self.__pais[identificador] = pais_do_commit
+        self.__mensagens[identificador] = f"merge de {nome}"
+        self.__proximo_commit += 1
+        self.__passos += 1
+        self.__branches[self.__branch_atual] = identificador
+        self.__passos += 1
+        return identificador
