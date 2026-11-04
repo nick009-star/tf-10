@@ -42,7 +42,9 @@ class MiniGit:
         self.__pais[identificador] = pais_do_commit
         self.__mensagens[identificador] = mensagem
         self.__proximo_commit += 1
+        # Passo 1: registrar o novo commit.
         self.__passos += 1
+        # Passo 2: mover o ponteiro da branch atual.
         self.__branches[self.__branch_atual] = identificador
         self.__passos += 1
         return identificador
@@ -53,6 +55,7 @@ class MiniGit:
         if commit not in self.__mensagens:
             raise ValueError("Commit inexistente")
 
+        # Passo 1: consultar diretamente a chave.
         self.__passos = 1
         return self.__mensagens[commit]
 
@@ -62,6 +65,7 @@ class MiniGit:
         if commit not in self.__pais:
             raise ValueError("Commit inexistente")
 
+        # Passo 1: consultar diretamente a chave.
         self.__passos = 1
         return tuple(self.__pais[commit])
 
@@ -74,6 +78,7 @@ class MiniGit:
             raise ValueError("Nao ha commits para criar a branch")
 
         self.__branches[nome] = self.__branches[self.__branch_atual]
+        # Passo 1: criar o novo ponteiro.
         self.__passos = 1
 
     def trocar_branch(self, nome):
@@ -83,6 +88,7 @@ class MiniGit:
             raise ValueError("Branch inexistente")
 
         self.__branch_atual = nome
+        # Passo 1: trocar o ponteiro da branch selecionada.
         self.__passos = 1
 
     @property
@@ -106,7 +112,9 @@ class MiniGit:
         self.__pais[identificador] = pais_do_commit
         self.__mensagens[identificador] = f"merge de {nome}"
         self.__proximo_commit += 1
+        # Passo 1: registrar o commit com seus dois pais.
         self.__passos += 1
+        # Passo 2: mover o ponteiro da branch atual.
         self.__branches[self.__branch_atual] = identificador
         self.__passos += 1
         return identificador
@@ -128,6 +136,7 @@ class MiniGit:
 
             visitados.add(commit)
             ordem.append(commit)
+            # Cada commit alcancavel entra uma vez na contagem.
             self.__passos += 1
             fila.extend(self.__pais[commit])
 
@@ -138,6 +147,7 @@ class MiniGit:
         self.__passos = 0
         for numero in range(1, self.__proximo_commit):
             identificador = f"c{numero}"
+            # Conta cada mensagem examinada, inclusive a que for encontrada.
             self.__passos += 1
             if texto in self.__mensagens[identificador]:
                 return identificador
@@ -150,8 +160,60 @@ class MiniGit:
         encontrados = []
         for numero in range(1, self.__proximo_commit):
             identificador = f"c{numero}"
+            # Cada commit existente precisa ser verificado.
             self.__passos += 1
             if len(self.__pais[identificador]) > 1:
                 encontrados.append(identificador)
 
         return tuple(encontrados)
+
+
+def tentar(acao):
+    """Executa uma tentativa e apresenta erros esperados sem interromper o roteiro."""
+    try:
+        acao()
+    except ValueError as erro:
+        print("erro:", erro)
+
+
+def medir(quantidade):
+    """Compara o custo do ultimo commit com o custo de percorrer o historico."""
+    git = MiniGit()
+    for numero in range(quantidade):
+        git.commitar(f"commit {numero}")
+
+    passos_commitar = git.passos
+    git.log()
+    passos_log = git.passos
+    return passos_commitar, passos_log
+
+
+git = MiniGit()
+git.commitar("primeiro commit")
+print(git.passos)
+git.commitar("segundo commit")
+git.criar_branch("feature")
+print(git.passos)
+git.commitar("terceiro commit")
+git.trocar_branch("feature")
+git.commitar("quarto commit")
+git.trocar_branch("main")
+git.mesclar("feature")
+print(git.pais("c5"))
+print(git.log(), git.passos)
+print(git.mensagem("c3"), git.passos)
+print(git.buscar("quarto"), git.passos)
+print(git.merges())
+git.trocar_branch("feature")
+print(git.log(), git.passos)
+git.trocar_branch("main")
+
+tentar(lambda: git.trocar_branch("inexistente"))
+tentar(lambda: git.criar_branch("main"))
+tentar(lambda: git.mesclar("main"))
+tentar(lambda: git.pais("c99"))
+
+print("commits   passos do commitar   passos do log")
+for quantidade in (10, 100, 1000):
+    passos_commitar, passos_log = medir(quantidade)
+    print(f"{quantidade:<10}{passos_commitar:<22}{passos_log}")
