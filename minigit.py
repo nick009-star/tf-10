@@ -110,3 +110,48 @@ class MiniGit:
         self.__branches[self.__branch_atual] = identificador
         self.__passos += 1
         return identificador
+
+    def log(self):
+        """Percorre os pais em largura com uma fila e conta cada commit uma vez."""
+        self.__passos = 0
+        ponta = self.__branches[self.__branch_atual]
+        if ponta is None:
+            return ()
+
+        fila = deque([ponta])
+        visitados = set()
+        ordem = []
+        while fila:
+            commit = fila.popleft()
+            if commit in visitados:
+                continue
+
+            visitados.add(commit)
+            ordem.append(commit)
+            self.__passos += 1
+            fila.extend(self.__pais[commit])
+
+        return tuple(ordem)
+
+    def buscar(self, texto):
+        """Procura mensagens na ordem de criacao e conta cada commit examinado."""
+        self.__passos = 0
+        for numero in range(1, self.__proximo_commit):
+            identificador = f"c{numero}"
+            self.__passos += 1
+            if texto in self.__mensagens[identificador]:
+                return identificador
+
+        return None
+
+    def merges(self):
+        """Lista em tupla os commits com mais de um pai, contando os commits existentes."""
+        self.__passos = 0
+        encontrados = []
+        for numero in range(1, self.__proximo_commit):
+            identificador = f"c{numero}"
+            self.__passos += 1
+            if len(self.__pais[identificador]) > 1:
+                encontrados.append(identificador)
+
+        return tuple(encontrados)
